@@ -260,6 +260,7 @@ Messages from `task doctor` and `task install`:
 | `ERROR: ... is not SOPS-encrypted ...` | restore `secrets/secrets.sops.yaml` from git, or run `task sops:encrypt` |
 | `ERROR: plaintext secrets/secrets.yaml present ...` | `task sops:encrypt` (it removes the plaintext), or delete the file if you do not need it |
 | `INVALID: secrets/secrets.sops.yaml does not decrypt with age/key.txt` | wrong `age/key.txt`, or Docker not running |
+| `secrets/secrets.yaml already exists; refusing to overwrite unsaved edits. ...` | `task sops:encrypt` to save the edits (it removes the plaintext), or remove `secrets/secrets.yaml` to discard them, then run `task sops:decrypt` again |
 | `refusing to overwrite existing key: age/key.txt` | a key exists; `task sops:generate-age-key` never replaces it |
 | `sops:get: stdout is not a terminal; ...` | run `task sops:get` in your own terminal, or add `--copy` |
 | `NOT CHECKED: <harness>; '<cmd>' is not on PATH` | install the harness, or ignore it |

@@ -7,6 +7,11 @@ set -eu
 root="$(cd "$(dirname "$0")/.." && pwd -P)"
 cd "$root"
 
+if [ -e secrets/secrets.yaml ]; then
+  echo "secrets/secrets.yaml already exists; refusing to overwrite unsaved edits. Run task sops:encrypt to save it, or remove the file." >&2
+  exit 1
+fi
+
 umask 077
 tmp="secrets/.secrets.yaml.tmp"
 trap 'rm -f "$tmp"' EXIT HUP INT TERM
