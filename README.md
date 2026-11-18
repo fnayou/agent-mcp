@@ -125,4 +125,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [SUPPORT
 
 ## Docker Compose
 
-Run `task setup` to create ignored `compose.yaml` from the tracked example when it is missing. Edit the local file for machine-specific settings. Run `task docker:config` to validate the example.
+Every Compose call goes through `scripts/compose.sh`, which runs `compose.example.yaml` plus the ignored `compose.override.yaml` when it exists (put machine-specific settings there). The old local copy `compose.yaml` is no longer used; delete it.
+
+| Task | Effect |
+|---|---|
+| `task docker` | build the images, then start the services |
+| `task docker:build` / `docker:build-nocache` | build every image, tools included |
+| `task docker:start` | start the services, leaving running ones alone (decrypts the Telegram credentials) |
+| `task docker:recreate` | recreate the services so changed secrets or settings take effect |
+| `task docker:stop` | stop the services, keeping containers and volumes |
+| `task docker:down` | remove containers and network, keeping volumes |
+| `task docker:restart` | `down`, then `start` |
+| `task docker:ps` / `docker:logs` | list containers / follow logs |
+| `task docker:config` | validate the Compose configuration |
+
+No task removes a volume: `agent-mcp_telegram-session` holds this machine's Telegram login. The only long-running service is `telegram`; run `task telegram:login` once before the first `task docker:start`.

@@ -53,7 +53,7 @@ elif ! [ -t 1 ]; then
 fi
 
 extract() {
-  docker compose -f compose.example.yaml run --rm -T --user "$(id -u):$(id -g)" \
+  sh scripts/compose.sh run --rm -T --user "$(id -u):$(id -g)" \
     sops --config secrets/.sops.yaml decrypt --extract "[\"$name\"]" "$store"
 }
 

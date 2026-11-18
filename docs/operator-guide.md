@@ -32,7 +32,7 @@ The guide is kept in step with the code. Any change to a task, a prerequisite, a
 | Plaintext secrets (only while editing) | `secrets/secrets.yaml` (ignored by git) | `task sops:decrypt`; removed by `task sops:encrypt` |
 | Docker images | `agent-mcp-tools:*`, `agent-mcp-telegram:*`, `agent-mcp-telegram-login:*` | built on first use |
 | Docker volumes | `agent-mcp_telegram-session`, `agent-mcp_telegram-transcripts` | `task telegram:login`, `task telegram:up` |
-| Telegram container | `telegram`, port `127.0.0.1:8765` | `task telegram:up` / `telegram:down` |
+| Telegram container | `telegram`, port `127.0.0.1:8765` | `task telegram:up` / `telegram:down`, or `task docker:start` / `docker:stop` |
 
 Nothing else outside the repository is written. Entries the manifest does not name (for example a server you added by hand) are never changed.
 
@@ -208,8 +208,11 @@ Do this after Telegram, so `telegram` is registered too. You can install before 
 | After `git pull` changed `servers.yaml` | `task sync -- --dry-run`, then `task sync` |
 | Telegram after a reboot | nothing: the container restarts with Docker unless you stopped it |
 | Stop or start Telegram | `task telegram:down` / `task telegram:up` |
+| Stop or start every service | `task docker:stop` / `task docker:start` (`docker:down` removes the containers, never the volumes) |
+| Rebuild the images | `task docker:build`, then `task docker:recreate` |
+| List containers | `task docker:ps` |
 | Telegram logs | `task telegram:logs` (Ctrl-C to stop following) |
-| Change a secret | `task sops:decrypt`, edit `secrets/secrets.yaml`, `task sops:encrypt`, all in your own terminal; then `task telegram:down` and `task telegram:up` |
+| Change a secret | `task sops:decrypt`, edit `secrets/secrets.yaml`, `task sops:encrypt`, all in your own terminal; then `task docker:recreate` |
 | Read one secret | `task sops:get -- NAME` in your own terminal (`-- --copy NAME` copies it to the clipboard) |
 | Change who can decrypt | edit `secrets/.sops.yaml`, then `task sops:updatekeys` |
 | Check the secrets store | `task sops:validate` (no key needed) |
@@ -243,7 +246,8 @@ Do this after Telegram, so `telegram` is registered too. You can install before 
 | Installer backups | `~/.local/state/agent-mcp/backups/` | no |
 | Telegram session | Docker volume `agent-mcp_telegram-session` | never |
 | Telegram transcripts | Docker volume `agent-mcp_telegram-transcripts` | never |
-| Local Compose copy | `compose.yaml` (from `task setup`; the `docker:*` tasks use it) | no |
+| Compose file | `compose.example.yaml`, run through `scripts/compose.sh` | yes |
+| Local Compose settings | `compose.override.yaml`, optional, merged when present | no |
 
 ## Troubleshooting
 
@@ -254,7 +258,8 @@ Messages from `task doctor` and `task install`:
 | `MISSING: git` / `python3` / `uv` | install the tool ([Prerequisites](#prerequisites)) |
 | `NOT CHECKED: Compose config; Docker CLI is missing.` | install Docker |
 | `NOT CHECKED: Compose config; Docker Compose plugin is missing.` | install the Compose v2 plugin |
-| `INVALID: Compose config; ...` | run `task docker:config` and fix `compose.example.yaml` |
+| `INVALID: Compose config; ...` | run `task docker:config` and fix `compose.example.yaml` or `compose.override.yaml` |
+| `compose.yaml is no longer used; ...` (from `task setup`) | move any local settings to `compose.override.yaml`, then delete `compose.yaml` |
 | `MISSING: age key; ...` | copy `age/key.txt` ([Another machine](#another-machine-one-time-setup)) or, on the very first machine only, `task sops:generate-age-key` |
 | `INVALID: age/key.txt is not mode 600; ...` | `chmod 600 age/key.txt` |
 | `ERROR: ... is not SOPS-encrypted ...` | restore `secrets/secrets.sops.yaml` from git, or run `task sops:encrypt` |
