@@ -11,3 +11,4 @@
 *.dec.yaml
 *.decrypted.*
 secrets.yaml
+__pycache__/
