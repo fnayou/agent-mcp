@@ -1,6 +1,0 @@
-# Every machine uses this same age key; copy keys.txt to a new machine instead of
-# adding a key. See docs/operator-guide.md.
-creation_rules:
-  - path_regex: secrets\.sops\.yaml$
-    age:
-      - age15633vgpmczlwvex8qgyet64gqum57w48gd8z3h8hm9dln28z6qssy4mmll

@@ -1,4 +1,4 @@
-import os, shutil, subprocess, sys, urllib.error, urllib.request
+import os, shutil, stat, subprocess, sys, urllib.error, urllib.request
 missing = [name for name in ('git', 'python3', 'uv') if not shutil.which(name)]
 for name in missing:
     print(f'MISSING: {name}')
@@ -22,16 +22,22 @@ if result.returncode:
     print('INVALID: Compose config; run task setup and review YAML and interpolation values.')
     sys.exit(result.returncode)
 print('OK: Compose config')
-key_dir = os.environ.get('SOPS_AGE_KEY_DIR') or os.path.expanduser('~/.config/sops/age')
-if not os.path.isfile(os.path.join(key_dir, 'keys.txt')):
-    print('MISSING: age key; copy keys.txt from another machine or run task secrets:keygen.')
+key_file = 'age/key.txt'
+if not os.path.isfile(key_file):
+    print('MISSING: age key; copy age/key.txt from another machine or, on the very first machine only, run task sops:generate-age-key.')
     sys.exit(1)
-print('OK: age key', flush=True)
-decrypt = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'run', '--rm', '-T', '--user', f'{os.getuid()}:{os.getgid()}', 'sops', 'decrypt', 'secrets.sops.yaml'], capture_output=True)
+if stat.S_IMODE(os.stat(key_file).st_mode) != 0o600:
+    print('INVALID: age/key.txt is not mode 600; run chmod 600 age/key.txt')
+    sys.exit(1)
+print('OK: age key (age/key.txt, mode 600)', flush=True)
+validate = subprocess.run(['sh', 'secrets/validate-secrets.sh'])
+if validate.returncode:
+    sys.exit(validate.returncode)
+decrypt = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'run', '--rm', '-T', '--user', f'{os.getuid()}:{os.getgid()}', 'sops', '--config', 'secrets/.sops.yaml', 'decrypt', 'secrets/secrets.sops.yaml'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 if decrypt.returncode:
-    print('INVALID: secrets.sops.yaml does not decrypt with the local age key')
+    print('INVALID: secrets/secrets.sops.yaml does not decrypt with age/key.txt')
     sys.exit(1)
-print('OK: secrets.sops.yaml decrypts', flush=True)
+print('OK: secrets/secrets.sops.yaml decrypts', flush=True)
 harnesses = subprocess.run(['uv', 'run', '--quiet', '--locked', '--script', 'scripts/installer.py', 'status'])
 # Not running is a warning, not a failure: the operator may not have logged in yet.
 running = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'ps', '--status', 'running', '--quiet', 'telegram'], capture_output=True, text=True)
