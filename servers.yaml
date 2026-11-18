@@ -1,0 +1,39 @@
+# Every MCP server agent-mcp installs. Validated against servers.schema.json
+# with `task manifest:check`. See the README for the field reference.
+schema_version: 1
+
+requires:
+  agent-browser:
+    check:
+      path: ${HOME}/.agents/skills/agent-browser/scripts/agent-browser-mcp
+    hint: Install the agent-browser skill from https://github.com/fnayou/agent-skills
+
+servers:
+  playwright:
+    description: Agent-only headless browser with an in-memory profile, for general web work
+    transport: stdio
+    command: ${HOME}/.agents/skills/agent-browser/scripts/agent-browser-mcp
+    startup_timeout_sec: 30
+    requires: [agent-browser]
+    codex:
+      tools:
+        browser_evaluate: { approval_mode: approve }
+        browser_navigate: { approval_mode: approve }
+        browser_click: { approval_mode: approve }
+        browser_close: { approval_mode: approve }
+
+  playwright-auth:
+    description: Agent-only headed browser with a persistent profile, for sites the user signs in to; one agent at a time
+    transport: stdio
+    command: ${HOME}/.agents/skills/agent-browser/scripts/agent-browser-mcp
+    args: [auth]
+    startup_timeout_sec: 30
+    requires: [agent-browser]
+
+  # Ships with macOS. Enable Develop > Allow Remote Automation in Safari once.
+  safari-mcp:
+    description: Safari compatibility checks via Safari's built-in MCP server; one session at a time
+    transport: stdio
+    command: /usr/bin/safaridriver
+    args: [--mcp]
+    os: [darwin]

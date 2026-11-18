@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/fnayou/agent-mcp/servers.schema.json",
+  "title": "agent-mcp server manifest",
+  "description": "Every MCP server agent-mcp installs, and the dependencies they need.",
+  "type": "object",
+  "required": ["schema_version", "servers"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "requires": {
+      "description": "Dependencies servers can name in their own `requires` list.",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/name" },
+      "additionalProperties": { "$ref": "#/$defs/requirement" }
+    },
+    "servers": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "$ref": "#/$defs/name" },
+      "additionalProperties": { "$ref": "#/$defs/server" }
+    }
+  },
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "requirement": {
+      "type": "object",
+      "required": ["check", "hint"],
+      "additionalProperties": false,
+      "properties": {
+        "check": {
+          "description": "How doctor decides the dependency is present: a file path, or a command on PATH.",
+          "type": "object",
+          "minProperties": 1,
+          "maxProperties": 1,
+          "additionalProperties": false,
+          "properties": {
+            "path": { "type": "string", "minLength": 1 },
+            "command": { "type": "string", "minLength": 1 }
+          }
+        },
+        "hint": {
+          "description": "What to do when the dependency is missing.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "passthrough": {
+      "description": "Harness-specific keys, written into that harness's entry verbatim.",
+      "type": "object"
+    },
+    "server": {
+      "type": "object",
+      "required": ["description", "transport"],
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string", "minLength": 1 },
+        "transport": { "enum": ["stdio", "http"] },
+        "command": {
+          "description": "Executable for stdio servers. `${HOME}` is expanded at install time.",
+          "type": "string",
+          "minLength": 1
+        },
+        "args": { "type": "array", "items": { "type": "string" } },
+        "env": {
+          "description": "Plain environment values. Never secrets.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "url": {
+          "description": "Endpoint for http servers.",
+          "type": "string",
+          "pattern": "^https?://"
+        },
+        "service": {
+          "description": "Compose service that must be running for an http server.",
+          "type": "string",
+          "minLength": 1
+        },
+        "startup_timeout_sec": {
+          "description": "Codex startup_timeout_sec; OpenCode timeout.startup in milliseconds.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "requires": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/name" }
+        },
+        "os": {
+          "description": "Operating systems the server runs on. Default: all.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["darwin", "arch", "debian"] }
+        },
+        "harnesses": {
+          "description": "Harnesses to install the server into. Default: all.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["claude", "codex", "opencode", "pi"] }
+        },
+        "claude": { "$ref": "#/$defs/passthrough" },
+        "codex": { "$ref": "#/$defs/passthrough" },
+        "opencode": { "$ref": "#/$defs/passthrough" },
+        "pi": { "$ref": "#/$defs/passthrough" }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["transport"], "properties": { "transport": { "const": "stdio" } } },
+          "then": {
+            "required": ["command"],
+            "allOf": [
+              { "not": { "required": ["url"] } },
+              { "not": { "required": ["service"] } }
+            ]
+          }
+        },
+        {
+          "if": { "required": ["transport"], "properties": { "transport": { "const": "http" } } },
+          "then": {
+            "required": ["url"],
+            "allOf": [
+              { "not": { "required": ["command"] } },
+              { "not": { "required": ["args"] } },
+              { "not": { "required": ["env"] } }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
