@@ -16,4 +16,5 @@ keys.txt
 *.dec.yaml
 *.decrypted.*
 secrets.yaml
+secrets/.*.tmp
 __pycache__/
