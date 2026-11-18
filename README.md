@@ -51,6 +51,19 @@ Server fields:
 
 Run `task --list` for available commands.
 
+## Secrets
+
+`secrets.sops.yaml` holds the Telegram API id and hash, encrypted with [sops](https://github.com/getsops/sops) and [age](https://github.com/FiloSottile/age). Both tools run in containers, so a host needs only Docker. Only low-value secrets belong in it: the repository is public and ciphertext stays in git history forever, so a later key leak would expose every past version.
+
+First machine: run `task secrets:keygen`. It writes `~/.config/sops/age/keys.txt` (override the directory with `SOPS_AGE_KEY_DIR`) and refuses to overwrite an existing key. Put the printed public key in `.sops.yaml`.
+
+New machine: copy `keys.txt` once, out of band, to `~/.config/sops/age/keys.txt` with the directory at mode 700 and the file at mode 600. No new key is needed.
+
+- `task secrets:edit` edits `secrets.sops.yaml`.
+- `task secrets:decrypt` prints the decrypted file to stdout. `task secrets:decrypt OUT=<path>` writes it to a mode-600 file and refuses any path inside the repository.
+
+Back up the key. Losing it makes `secrets.sops.yaml` undecryptable.
+
 ## Project profile
 
 This repository is initialized as a CLI foundation. Add verified project-specific build and test instructions as the implementation takes shape.

@@ -21,6 +21,35 @@ tasks:
     cmds:
       - python3 scripts/setup.py
 
+  secrets:keygen:
+    desc: Generate the age key in the host key directory, never overwriting one
+    cmds:
+      - mkdir -p -m 700 "${SOPS_AGE_KEY_DIR:-$HOME/.config/sops/age}"
+      - docker compose -f compose.example.yaml run --rm --user "$(id -u):$(id -g)" age-keygen
+
+  secrets:edit:
+    desc: Edit secrets.sops.yaml with sops in a container
+    interactive: true
+    cmds:
+      - docker compose -f compose.example.yaml run --rm --user "$(id -u):$(id -g)" sops edit secrets.sops.yaml
+
+  secrets:decrypt:
+    desc: Print secrets.sops.yaml decrypted to stdout, or to OUT (mode 600, outside the repo)
+    cmds:
+      - |
+        if [ -z "{{.OUT}}" ]; then
+          docker compose -f compose.example.yaml run --rm -T --user "$(id -u):$(id -g)" sops decrypt secrets.sops.yaml
+        else
+          out_dir="$(cd "$(dirname "{{.OUT}}")" && pwd -P)" || exit 1
+          root="$(cd "{{.ROOT_DIR}}" && pwd -P)"
+          case "$out_dir/" in
+            "$root"/*) echo "refusing to write decrypted secrets inside the repository: {{.OUT}}" >&2; exit 1 ;;
+          esac
+          umask 077
+          docker compose -f compose.example.yaml run --rm -T --user "$(id -u):$(id -g)" sops decrypt secrets.sops.yaml > "{{.OUT}}" || exit 1
+          chmod 600 "{{.OUT}}"
+        fi
+
   docker:config:
     desc: Validate Compose configuration without printing resolved values
     cmds:

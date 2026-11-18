@@ -1,0 +1,6 @@
+# To add another machine's key: append its public key (age1...) to the age list
+# below, then run `sops updatekeys secrets.sops.yaml` in the container.
+creation_rules:
+  - path_regex: secrets\.sops\.yaml$
+    age:
+      - age15633vgpmczlwvex8qgyet64gqum57w48gd8z3h8hm9dln28z6qssy4mmll

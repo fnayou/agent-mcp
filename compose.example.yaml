@@ -2,11 +2,20 @@
 # Run one-off commands with `docker compose run --rm <service> ...`.
 name: agent-mcp
 
+# One image holds both tools: the pinned sops base plus age (for age-keygen).
+# Alpine 3.24 in the base image ships age 1.3.2-r1.
+x-tools-image: &tools-image
+  image: agent-mcp-tools:sops-3.13.3-age-1.3.2
+  build:
+    dockerfile_inline: |
+      FROM ghcr.io/getsops/sops:v3.13.3-alpine@sha256:ae501277bf742f1662e0f881f43dd8fd6798b489a8058e921dbf6cda597140ea
+      RUN apk add --no-cache age=1.3.2-r1
+
 services:
   # sops with built-in age support, for editing and decrypting secrets.sops.yaml.
   # The age private key stays on the host and is mounted read-only.
   sops:
-    image: ghcr.io/getsops/sops:v3.13.3-alpine@sha256:ae501277bf742f1662e0f881f43dd8fd6798b489a8058e921dbf6cda597140ea
+    <<: *tools-image
     profiles: [tools]
     working_dir: /work
     environment:
@@ -14,3 +23,21 @@ services:
     volumes:
       - .:/work
       - ${SOPS_AGE_KEY_DIR:-${HOME}/.config/sops/age}:/keys:ro
+
+  # Generates the age key at /keys/keys.txt. Refuses to overwrite an existing key.
+  # The key directory is mounted read-write. Run it with `task secrets:keygen`.
+  age-keygen:
+    <<: *tools-image
+    profiles: [tools]
+    entrypoint:
+      - sh
+      - -c
+      - |
+        if [ -e /keys/keys.txt ]; then
+          echo "refusing to overwrite existing key: /keys/keys.txt" >&2
+          exit 1
+        fi
+        umask 077
+        age-keygen -o /keys/keys.txt
+    volumes:
+      - ${SOPS_AGE_KEY_DIR:-${HOME}/.config/sops/age}:/keys

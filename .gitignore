@@ -8,3 +8,6 @@
 /compose.yml
 .env.local
 .env.*.local
+*.dec.yaml
+*.decrypted.*
+secrets.yaml
