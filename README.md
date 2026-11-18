@@ -4,7 +4,7 @@ Declare every MCP server once and install it into Claude Code, Codex, OpenCode a
 
 ## Getting started
 
-Install [Task](https://taskfile.dev/) and [uv](https://docs.astral.sh/uv/), then run `task setup` and `task doctor`.
+Follow the [operator guide](docs/operator-guide.md): prerequisites, one-time setup per machine, install, day-to-day commands and undo.
 
 ## Server manifest
 
