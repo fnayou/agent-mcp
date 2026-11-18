@@ -1,0 +1,16 @@
+# Tool containers for agent-mcp. Copy to compose.yaml (ignored) with `task setup`.
+# Run one-off commands with `docker compose run --rm <service> ...`.
+name: agent-mcp
+
+services:
+  # sops with built-in age support, for editing and decrypting secrets.sops.yaml.
+  # The age private key stays on the host and is mounted read-only.
+  sops:
+    image: ghcr.io/getsops/sops:v3.13.3-alpine@sha256:ae501277bf742f1662e0f881f43dd8fd6798b489a8058e921dbf6cda597140ea
+    profiles: [tools]
+    working_dir: /work
+    environment:
+      SOPS_AGE_KEY_FILE: /keys/keys.txt
+    volumes:
+      - .:/work
+      - ${SOPS_AGE_KEY_DIR:-${HOME}/.config/sops/age}:/keys:ro
