@@ -16,7 +16,7 @@ umask 077
 tmp="secrets/.secrets.sops.yaml.tmp"
 trap 'rm -f "$tmp"' EXIT HUP INT TERM
 
-docker compose -f compose.example.yaml run --rm -T --user "$(id -u):$(id -g)" \
+sh scripts/compose.sh run --rm -T --user "$(id -u):$(id -g)" \
   sops --config secrets/.sops.yaml encrypt secrets/secrets.yaml > "$tmp"
 mv "$tmp" secrets/secrets.sops.yaml
 chmod 644 secrets/secrets.sops.yaml

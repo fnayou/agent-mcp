@@ -1,0 +1,89 @@
+version: "3"
+
+# Adapted from fnayou/ansiblify-home-server. The only long-running service is
+# `telegram`; sops, age-keygen and telegram-login are one-off tools under the
+# `tools` profile. Nothing here removes a volume: the telegram-session volume
+# holds this machine's Telegram login.
+
+vars:
+  COMPOSE: "sh scripts/compose.sh"
+  # Starting or recreating `telegram` needs its credentials, so those go through
+  # the wrapper that decrypts them into a temporary file outside the repository.
+  COMPOSE_WITH_SECRETS: "sh scripts/telegram-compose.sh"
+
+tasks:
+  default:
+    desc: "Build the images, then start the services"
+    cmds:
+      - task: build
+      - task: start
+    silent: true
+
+  build:
+    desc: "Build every image, tools included (with cache)"
+    cmds:
+      - cmd: "{{.COMPOSE}} --profile tools build --pull"
+      - cmd: 'echo "OK: Docker images built."'
+    silent: true
+
+  build-nocache:
+    desc: "Build every image, tools included (no cache)"
+    cmds:
+      - cmd: "{{.COMPOSE}} --profile tools build --pull --no-cache"
+      - cmd: 'echo "OK: Docker images built without cache."'
+    silent: true
+
+  start:
+    desc: "Start the services (leaves running ones alone)"
+    cmds:
+      - cmd: "{{.COMPOSE_WITH_SECRETS}} up -d --remove-orphans --no-recreate"
+      - cmd: 'echo "OK: Docker services started."'
+    silent: true
+
+  recreate:
+    # `start` passes --no-recreate, so a changed secret or Compose setting is not
+    # applied to a running container. This one is.
+    desc: "Recreate the services so changed secrets or settings take effect"
+    cmds:
+      - cmd: "{{.COMPOSE_WITH_SECRETS}} up -d --remove-orphans --force-recreate"
+      - cmd: 'echo "OK: Docker services recreated."'
+    silent: true
+
+  stop:
+    desc: "Stop the services, keeping containers and volumes"
+    cmds:
+      - cmd: "{{.COMPOSE}} stop"
+      - cmd: 'echo "OK: Docker services stopped."'
+    silent: true
+
+  down:
+    desc: "Remove the containers and network, keeping volumes (the Telegram session stays)"
+    cmds:
+      - cmd: "{{.COMPOSE}} down --remove-orphans"
+      - cmd: 'echo "OK: Docker services removed; volumes kept."'
+    silent: true
+
+  restart:
+    desc: "Remove and start the services again (volumes kept)"
+    cmds:
+      - task: down
+      - task: start
+    silent: true
+
+  ps:
+    desc: "List the project's containers"
+    cmds:
+      - cmd: "{{.COMPOSE}} ps --all"
+    silent: true
+
+  logs:
+    desc: "Follow the logs of every service"
+    cmds:
+      - cmd: "{{.COMPOSE}} logs -f"
+    silent: true
+
+  config:
+    desc: "Validate the Compose configuration without printing resolved values"
+    cmds:
+      - cmd: "{{.COMPOSE}} config --quiet"
+    silent: true

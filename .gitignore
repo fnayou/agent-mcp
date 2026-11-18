@@ -11,6 +11,7 @@ key.txt
 keys.txt
 /compose.yaml
 /compose.yml
+/compose.override.yaml
 .env.local
 .env.*.local
 *.dec.yaml

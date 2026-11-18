@@ -17,9 +17,9 @@ version = subprocess.run([docker, 'compose', 'version'], capture_output=True, te
 if version.returncode:
     print('NOT CHECKED: Compose config; Docker Compose plugin is missing.')
     sys.exit(1)
-result = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'config', '--quiet'], capture_output=True, text=True)
+result = subprocess.run(['sh', 'scripts/compose.sh', 'config', '--quiet'], capture_output=True, text=True)
 if result.returncode:
-    print('INVALID: Compose config; run task setup and review YAML and interpolation values.')
+    print('INVALID: Compose config; run task docker:config and review compose.example.yaml and compose.override.yaml.')
     sys.exit(result.returncode)
 print('OK: Compose config')
 key_file = 'age/key.txt'
@@ -33,14 +33,14 @@ print('OK: age key (age/key.txt, mode 600)', flush=True)
 validate = subprocess.run(['sh', 'secrets/validate-secrets.sh'])
 if validate.returncode:
     sys.exit(validate.returncode)
-decrypt = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'run', '--rm', '-T', '--user', f'{os.getuid()}:{os.getgid()}', 'sops', '--config', 'secrets/.sops.yaml', 'decrypt', 'secrets/secrets.sops.yaml'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+decrypt = subprocess.run(['sh', 'scripts/compose.sh', 'run', '--rm', '-T', '--user', f'{os.getuid()}:{os.getgid()}', 'sops', '--config', 'secrets/.sops.yaml', 'decrypt', 'secrets/secrets.sops.yaml'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 if decrypt.returncode:
     print('INVALID: secrets/secrets.sops.yaml does not decrypt with age/key.txt')
     sys.exit(1)
 print('OK: secrets/secrets.sops.yaml decrypts', flush=True)
 harnesses = subprocess.run(['uv', 'run', '--quiet', '--locked', '--script', 'scripts/installer.py', 'status'])
 # Not running is a warning, not a failure: the operator may not have logged in yet.
-running = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'ps', '--status', 'running', '--quiet', 'telegram'], capture_output=True, text=True)
+running = subprocess.run(['sh', 'scripts/compose.sh', 'ps', '--status', 'running', '--quiet', 'telegram'], capture_output=True, text=True)
 if running.returncode or not running.stdout.strip():
     print('WARNING: telegram container is not running; run task telegram:login once, then task telegram:up.')
 else:
