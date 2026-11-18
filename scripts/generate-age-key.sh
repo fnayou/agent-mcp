@@ -16,7 +16,7 @@ if [ -e "$key" ]; then
 fi
 
 mkdir -p -m 700 age
-docker compose -f compose.example.yaml run --rm -T --user "$(id -u):$(id -g)" age-keygen
+sh scripts/compose.sh run --rm -T --user "$(id -u):$(id -g)" age-keygen
 
 public="$(grep '^# public key: ' "$key" | cut -d ' ' -f 4)"
 if [ -z "$public" ]; then

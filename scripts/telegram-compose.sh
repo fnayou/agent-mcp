@@ -1,5 +1,5 @@
 #!/bin/sh
-# Run `docker compose -f compose.example.yaml <args>` with TELEGRAM_API_ID and
+# Run `scripts/compose.sh <args>` with TELEGRAM_API_ID and
 # TELEGRAM_API_HASH decrypted from secrets/secrets.sops.yaml into a mode-600
 # temporary file outside the repository. Only those two values are extracted.
 # The file is deleted on exit, success or failure. Values are never printed.
@@ -18,7 +18,7 @@ case "$env_dir/" in
 esac
 
 extract() {
-  docker compose -f compose.example.yaml run --rm -T --user "$(id -u):$(id -g)" \
+  sh scripts/compose.sh run --rm -T --user "$(id -u):$(id -g)" \
     sops --config secrets/.sops.yaml decrypt --extract "[\"$1\"]" secrets/secrets.sops.yaml
 }
 
@@ -33,4 +33,4 @@ if grep -q REPLACE_ME "$env_file"; then
   exit 1
 fi
 
-TELEGRAM_ENV_FILE="$env_file" docker compose -f compose.example.yaml "$@"
+TELEGRAM_ENV_FILE="$env_file" sh scripts/compose.sh "$@"

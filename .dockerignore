@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 compose.yaml
+compose.override.yaml
 *.dec.yaml
 *.decrypted.*
 secrets.yaml

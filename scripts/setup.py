@@ -24,6 +24,9 @@ def copy_if_missing(source_name, target_name):
         Path(name).unlink(missing_ok=True)
 
 
-copy_if_missing("compose.example.yaml", "compose.yaml")
+# Compose runs compose.example.yaml directly (scripts/compose.sh); put
+# machine-specific settings in the ignored compose.override.yaml instead.
+if Path("compose.yaml").exists():
+    print("compose.yaml is no longer used; move any local settings to compose.override.yaml and delete it.")
 if Path(".env.example").is_file():
     copy_if_missing(".env.example", ".env")
