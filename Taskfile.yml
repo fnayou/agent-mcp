@@ -16,6 +16,26 @@ tasks:
     cmds:
       - uv run --quiet --locked --script scripts/manifest_check.py
 
+  install:
+    desc: Register every applicable server in each installed harness (--dry-run to preview)
+    cmds:
+      - uv run --quiet --locked --script scripts/installer.py install {{.CLI_ARGS}}
+
+  sync:
+    desc: Re-register after manifest edits and remove recorded servers it dropped (--dry-run to preview)
+    cmds:
+      - uv run --quiet --locked --script scripts/installer.py sync {{.CLI_ARGS}}
+
+  uninstall:
+    desc: Remove only the entries this repo recorded in the state file
+    cmds:
+      - uv run --quiet --locked --script scripts/installer.py uninstall
+
+  test:
+    desc: Run the installer test suite
+    cmds:
+      - uv run --quiet --locked --script tests/test_installer.py
+
   setup:
     desc: Initialize missing local configuration without overwriting files
     cmds:
