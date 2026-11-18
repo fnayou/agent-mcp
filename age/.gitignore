@@ -1,0 +1,3 @@
+# Ignore everything here: the age private key (key.txt) must never be committed.
+*
+!.gitignore

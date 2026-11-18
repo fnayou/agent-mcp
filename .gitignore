@@ -4,6 +4,11 @@
 !.env.example
 *.pem
 *.key
+# age private keys (age/ also has its own allowlist .gitignore)
+age/key.txt
+*.agekey
+key.txt
+keys.txt
 /compose.yaml
 /compose.yml
 .env.local

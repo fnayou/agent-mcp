@@ -6,3 +6,4 @@ compose.yaml
 *.dec.yaml
 *.decrypted.*
 secrets.yaml
+age/
