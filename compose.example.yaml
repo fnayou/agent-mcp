@@ -80,35 +80,35 @@ services:
         python migrate_session.py
         echo "Session stored in the telegram-session volume."
 
-  # sops with built-in age support, for editing and decrypting secrets.sops.yaml.
-  # The age private key stays on the host and is mounted read-only.
+  # sops with built-in age support, for secrets/secrets.sops.yaml. The repository
+  # is mounted at /work; the age private key is the ignored file age/key.txt in it.
   sops:
     <<: *tools-image
     profiles: [tools]
     working_dir: /work
     environment:
-      SOPS_AGE_KEY_FILE: /keys/keys.txt
+      SOPS_AGE_KEY_FILE: /work/age/key.txt
     volumes:
       - .:/work
-      - ${SOPS_AGE_KEY_DIR:-${HOME}/.config/sops/age}:/keys:ro
 
-  # Generates the age key at /keys/keys.txt. Refuses to overwrite an existing key.
-  # The key directory is mounted read-write. Run it with `task secrets:keygen`.
+  # Generates the age key at /work/age/key.txt. Refuses to overwrite an existing
+  # key. Run it with `task sops:generate-age-key`.
   age-keygen:
     <<: *tools-image
     profiles: [tools]
+    working_dir: /work
     entrypoint:
       - sh
       - -c
       - |
-        if [ -e /keys/keys.txt ]; then
-          echo "refusing to overwrite existing key: /keys/keys.txt" >&2
+        if [ -e /work/age/key.txt ]; then
+          echo "refusing to overwrite existing key: /work/age/key.txt" >&2
           exit 1
         fi
         umask 077
-        age-keygen -o /keys/keys.txt
+        age-keygen -o /work/age/key.txt
     volumes:
-      - ${SOPS_AGE_KEY_DIR:-${HOME}/.config/sops/age}:/keys
+      - .:/work
 
 volumes:
   telegram-session:

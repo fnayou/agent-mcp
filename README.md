@@ -76,16 +76,23 @@ Add `-- --dry-run` to `install` or `sync` (`task install -- --dry-run`) to print
 
 ## Secrets
 
-`secrets.sops.yaml` holds the Telegram API id and hash, encrypted with [sops](https://github.com/getsops/sops) and [age](https://github.com/FiloSottile/age). Both tools run in containers, so a host needs only Docker. Only low-value secrets belong in it: the repository is public and ciphertext stays in git history forever, so a later key leak would expose every past version.
+`secrets/secrets.sops.yaml` holds the Telegram API id and hash, encrypted with [sops](https://github.com/getsops/sops) and [age](https://github.com/FiloSottile/age); `secrets/.sops.yaml` holds the rules and `secrets/secrets.yaml.example` the plaintext template. Both tools run in one-off containers, so a host needs only Docker. Only low-value secrets belong in it: the repository is public and ciphertext stays in git history forever, so a later key leak would expose every past version.
 
-First machine: run `task secrets:keygen`. It writes `~/.config/sops/age/keys.txt` (override the directory with `SOPS_AGE_KEY_DIR`) and refuses to overwrite an existing key. Put the printed public key in `.sops.yaml`.
+The age private key is `age/key.txt` in the repository, mode 600 in a mode-700 `age/`. Git and Docker ignore it, and it is never committed. `~/.config/sops/age` is no longer used.
 
-New machine: copy `keys.txt` once, out of band, to `~/.config/sops/age/keys.txt` with the directory at mode 700 and the file at mode 600. No new key is needed.
+First machine (new key only): `task sops:generate-age-key` creates `age/key.txt`, never overwrites one, and prints the public key for `secrets/.sops.yaml`.
 
-- `task secrets:edit` edits `secrets.sops.yaml`.
-- `task secrets:decrypt` prints the decrypted file to stdout. `task secrets:decrypt OUT=<path>` writes it to a mode-600 file and refuses any path inside the repository.
+New machine: copy `age/key.txt` once, out of band, with `age/` at mode 700 and the file at mode 600. No new key is needed.
 
-Back up the key. Losing it makes `secrets.sops.yaml` undecryptable.
+The loop, each step in your own terminal:
+
+1. `task sops:decrypt` writes the plaintext `secrets/secrets.yaml` (ignored by git; do not commit it).
+2. Edit `secrets/secrets.yaml`.
+3. `task sops:encrypt` encrypts it to `secrets/secrets.sops.yaml` and removes the plaintext.
+
+Other tasks: `task sops:get -- [--copy] NAME` shows one value, only in a terminal or on the clipboard; `task sops:updatekeys` re-encrypts to the recipients in `secrets/.sops.yaml`; `task sops:validate` needs no key and fails on an unencrypted store or a leftover plaintext file.
+
+`git clean -fdx` deletes the ignored `age/key.txt`. Back the key up outside the repository: losing it makes `secrets/secrets.sops.yaml` undecryptable.
 
 ## Telegram
 
@@ -97,7 +104,7 @@ Warning: the port is published on `127.0.0.1` only, and the endpoint has no auth
 
 Set up, once per machine:
 
-1. `task secrets:edit` and replace the `REPLACE_ME` placeholders with the real API id and hash from <https://my.telegram.org/apps>.
+1. `task sops:decrypt`, replace the `REPLACE_ME` placeholders in `secrets/secrets.yaml` with the real API id and hash from <https://my.telegram.org/apps>, then `task sops:encrypt`.
 2. `task telegram:login`. Answer the label prompt with Enter and `y` to the `.env` prompt, then scan the QR code in Telegram under Settings > Devices > Link Desktop Device. The session string is converted into a session file and deleted.
 3. `task telegram:up`. `task doctor` reports whether the container is running and `/mcp` answers.
 4. `task install` to register `telegram` in each harness.
@@ -106,7 +113,7 @@ Sessions are per machine. Telegram invalidates an auth key used from two IPs at 
 
 The session file holds account credentials. It lives in the `telegram-session` Docker volume, never in the repository, and is never committed. Voice transcripts are cached in the `telegram-transcripts` volume. To log in again, remove the volume with `docker volume rm agent-mcp_telegram-session` after `task telegram:down`.
 
-`task telegram:login` and `task telegram:up` decrypt the API id and hash into a mode-600 temporary file outside the repository, hand it to Compose, and delete it on exit. They refuse to run while the placeholders are still in `secrets.sops.yaml`.
+`task telegram:login` and `task telegram:up` decrypt only the API id and hash into a mode-600 temporary file outside the repository, hand it to Compose, and delete it on exit. They refuse to run while the placeholders are still in `secrets/secrets.sops.yaml`.
 
 ## Project profile
 

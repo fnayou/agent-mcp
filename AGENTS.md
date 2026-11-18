@@ -10,6 +10,8 @@ Use `task --list` to see available commands. Run `task setup` once, then `task d
 
 `docs/operator-guide.md` is the human guide. A change to an operator task, a prerequisite, a server in `servers.yaml`, a path, volume or port outside the repository, or a message from `task doctor` or the installer updates that guide in the same pull request.
 
+Agents never read, print or copy `age/key.txt` or `secrets/secrets.yaml`; the operator runs `task sops:*` commands that touch them.
+
 Preserve user changes and existing files. Keep credentials out of source control and logs. Use focused changes and Conventional Commits. Check `docs/agents/` for issue-tracker, triage-label, and domain-doc conventions when those files exist.
 
 ## Agent skills

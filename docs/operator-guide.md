@@ -28,7 +28,8 @@ The guide is kept in step with the code. Any change to a task, a prerequisite, a
 | OpenCode MCP entries | `~/.config/opencode/opencode.jsonc` | the same tasks, by editing the file |
 | Pi MCP entries | `~/.pi/agent/mcp.json` | the same tasks, through `pi mcp` |
 | Installer state and backups | `${XDG_STATE_HOME:-~/.local/state}/agent-mcp/` | the same tasks |
-| age private key | `~/.config/sops/age/keys.txt` (or `$SOPS_AGE_KEY_DIR`) | you (`task secrets:keygen` or a copy) |
+| age private key | `age/key.txt` in the repository (ignored by git and Docker; `~/.config/sops/age` is no longer used) | you (`task sops:generate-age-key` or a copy) |
+| Plaintext secrets (only while editing) | `secrets/secrets.yaml` (ignored by git) | `task sops:decrypt`; removed by `task sops:encrypt` |
 | Docker images | `agent-mcp-tools:*`, `agent-mcp-telegram:*`, `agent-mcp-telegram-login:*` | built on first use |
 | Docker volumes | `agent-mcp_telegram-session`, `agent-mcp_telegram-transcripts` | `task telegram:login`, `task telegram:up` |
 | Telegram container | `telegram`, port `127.0.0.1:8765` | `task telegram:up` / `telegram:down` |
@@ -39,7 +40,7 @@ Nothing else outside the repository is written. Entries the manifest does not na
 
 Run every command from the repository root.
 
-- **Interactive commands, or commands that show secrets, run in your own terminal**: `task secrets:keygen`, `task secrets:edit`, `task secrets:decrypt`, `task telegram:login`. They need a keyboard or show a QR code, and their output must not end up in an AI assistant's transcript.
+- **Interactive commands, or commands that show secrets, run in your own terminal**: `task sops:generate-age-key`, `task sops:decrypt`, `task sops:encrypt`, `task sops:get`, `task telegram:login`. They need a keyboard or show a QR code, and their output must not end up in an AI assistant's transcript.
 - **Every other command** (`task doctor`, `task install`, `task telegram:up`, ...) can run in your terminal or through an assistant, for example with the `!` prefix in Claude Code, so the assistant can read the output.
 
 ## Prerequisites
@@ -54,7 +55,7 @@ Run every command from the repository root.
 | [uv](https://docs.astral.sh/uv/getting-started/installation/) | runs the Python scripts with locked dependencies | `brew install uv` | `pacman -S uv` | the install script from astral.sh |
 | Docker with Compose v2 and Buildx | sops, age and Telegram run in containers | Docker Desktop (or another engine that provides `docker compose`) | `pacman -S docker docker-compose docker-buildx`, then enable the service and join the `docker` group | Docker's own apt repository: `docker-ce`, `docker-compose-plugin`, `docker-buildx-plugin`, then join the `docker` group |
 
-The Docker engine must be running before any `secrets:*`, `telegram:*` or `doctor` command.
+The Docker engine must be running before any `sops:*` (except `sops:validate`), `telegram:*` or `doctor` command.
 
 Versions tested: macOS with Docker Desktop 4.99, Docker Compose v5.7, Task 3.54, uv 0.13, Python 3.15. Arch and Debian are supported by the code but not yet tested end to end; record the first run here.
 
@@ -87,11 +88,11 @@ The source of truth is `servers.yaml`. When it gains a server, add its row here.
 
 - **Telegram API id and hash**: log in at <https://my.telegram.org/apps>, open "API development tools", and create an application. Note the `api_id` (a number) and `api_hash`. One pair serves every machine.
 - **Your phone with Telegram**, for the QR login on each machine.
-- **A safe place for the age private key** (a password manager, for example). Losing the key makes `secrets.sops.yaml` unreadable; leaking it exposes every past version of the secrets, which stay in the public git history.
+- **A safe place for the age private key** (a password manager, for example). Losing the key makes `secrets/secrets.sops.yaml` unreadable, and `git clean -fdx` deletes `age/key.txt`; leaking it exposes every past version of the secrets, which stay in the public git history.
 
 ## First machine: one-time setup
 
-This repository's `secrets.sops.yaml` is already encrypted for the current key. Skip this section if you hold that key; go to [Another machine](#another-machine-one-time-setup). Follow it only for a new key: a fork, or a lost key.
+This repository's `secrets/secrets.sops.yaml` is already encrypted for the current key. Skip this section if you hold that key; go to [Another machine](#another-machine-one-time-setup). Follow it only for a new key: a fork, or a lost key.
 
 1. Clone and prepare:
    ```sh
@@ -100,10 +101,10 @@ This repository's `secrets.sops.yaml` is already encrypted for the current key. 
    ```
 2. In your own terminal, generate the age key. It refuses to overwrite an existing key.
    ```sh
-   task secrets:keygen
+   task sops:generate-age-key
    ```
-   Check: `~/.config/sops/age` is mode 700 and `keys.txt` is mode 600. Store a copy of `keys.txt` in your safe place now.
-3. Put the printed public key (`age1...`) in `.sops.yaml` in place of the old one. Then create the secrets file again for the new key: delete `secrets.sops.yaml` and run `task secrets:edit`, which creates it from the `.sops.yaml` rule. Enter `TELEGRAM_API_ID` and `TELEGRAM_API_HASH` as top-level keys. Commit both files and open a pull request.
+   Check: `age/` is mode 700 and `age/key.txt` is mode 600. Store a copy of `age/key.txt` in your safe place now: `git clean -fdx` deletes it.
+3. Put the printed public key (`age1...`) in `secrets/.sops.yaml` in place of the old one. Then create the secrets file again for the new key: delete `secrets/secrets.sops.yaml`, copy `secrets/secrets.yaml.example` to `secrets/secrets.yaml`, enter real values for `TELEGRAM_API_ID` and `TELEGRAM_API_HASH`, and run `task sops:encrypt`, which also removes the plaintext. Commit `secrets/.sops.yaml` and `secrets/secrets.sops.yaml` and open a pull request.
 4. Run `task doctor` and continue with [Telegram](#telegram-once-per-machine).
 
 ## Another machine: one-time setup
@@ -116,14 +117,15 @@ Every machine uses the same age key; no new key is needed.
    git clone git@github.com:fnayou/agent-mcp.git && cd agent-mcp
    task setup
    ```
-3. Copy `keys.txt` from your safe place, out of band, never through the repository:
+3. Copy `age/key.txt` from your safe place, out of band, never through git:
    ```sh
-   mkdir -p -m 700 ~/.config/sops/age
-   # place keys.txt there, then:
-   chmod 600 ~/.config/sops/age/keys.txt
+   mkdir -p -m 700 age
+   # place key.txt there, then:
+   chmod 600 age/key.txt
    ```
-4. Run `task doctor`. Expect `OK: age key` and `OK: secrets.sops.yaml decrypts`.
-5. Continue with [Telegram](#telegram-once-per-machine). The API id and hash are already in `secrets.sops.yaml`; skip step 1 there.
+   `~/.config/sops/age` is no longer read. Back the key up: `git clean -fdx` deletes it.
+4. Run `task doctor`. Expect `OK: age key (age/key.txt, mode 600)`, `OK: secrets are encrypted; no plaintext at rest` and `OK: secrets/secrets.sops.yaml decrypts`.
+5. Continue with [Telegram](#telegram-once-per-machine). The API id and hash are already in `secrets/secrets.sops.yaml`; skip step 1 there.
 
 ## Telegram: once per machine
 
@@ -133,9 +135,9 @@ Security: the server listens on `127.0.0.1:8765` only, and has no authentication
 
 1. **Set the real API id and hash** (first machine only). In your own terminal:
    ```sh
-   task secrets:edit
+   task sops:decrypt
    ```
-   Replace both `REPLACE_ME` values with your `api_id` and `api_hash`, save and quit. Commit `secrets.sops.yaml` (it stays encrypted) and open a pull request.
+   Replace both `REPLACE_ME` values in `secrets/secrets.yaml` with your `api_id` and `api_hash`, save, then run `task sops:encrypt`, which encrypts the file and removes the plaintext. Commit `secrets/secrets.sops.yaml` (it stays encrypted) and open a pull request.
 2. **Log in.** In your own terminal:
    ```sh
    task telegram:login
@@ -154,7 +156,7 @@ Security: the server listens on `127.0.0.1:8765` only, and has no authentication
 
 Optional settings, read from your shell when the container starts: `TELEGRAM_EXPECTED_USERNAME` (refuse a session for another account) and `TELEGRAM_TOOL_TIMEOUT_SECONDS` (default 55).
 
-The credentials reach the container through a temporary mode-600 file outside the repository, deleted when the command ends. `telegram:login` and `telegram:up` refuse to run while `secrets.sops.yaml` still holds `REPLACE_ME`.
+The credentials reach the container through a temporary mode-600 file outside the repository, deleted when the command ends. It holds only `TELEGRAM_API_ID` and `TELEGRAM_API_HASH`. `telegram:login` and `telegram:up` refuse to run while `secrets/secrets.sops.yaml` still holds `REPLACE_ME`.
 
 ## Install the servers into the harnesses
 
@@ -197,7 +199,10 @@ Do this after Telegram, so `telegram` is registered too. You can install before 
 | Telegram after a reboot | nothing: the container restarts with Docker unless you stopped it |
 | Stop or start Telegram | `task telegram:down` / `task telegram:up` |
 | Telegram logs | `task telegram:logs` (Ctrl-C to stop following) |
-| Change a secret | `task secrets:edit` in your own terminal, then `task telegram:down` and `task telegram:up` |
+| Change a secret | `task sops:decrypt`, edit `secrets/secrets.yaml`, `task sops:encrypt`, all in your own terminal; then `task telegram:down` and `task telegram:up` |
+| Read one secret | `task sops:get -- NAME` in your own terminal (`-- --copy NAME` copies it to the clipboard) |
+| Change who can decrypt | edit `secrets/.sops.yaml`, then `task sops:updatekeys` |
+| Check the secrets store | `task sops:validate` (no key needed) |
 | See every task | `task --list` |
 
 ## Undo
@@ -221,8 +226,9 @@ Do this after Telegram, so `telegram` is registered too. You can install before 
 | Item | Location | In git |
 |---|---|---|
 | Server list | `servers.yaml`, format in `servers.schema.json` | yes |
-| Encrypted secrets | `secrets.sops.yaml`, rules in `.sops.yaml` | yes (encrypted) |
-| age private key | `~/.config/sops/age/keys.txt` | never |
+| Encrypted secrets | `secrets/secrets.sops.yaml`, rules in `secrets/.sops.yaml`, template `secrets/secrets.yaml.example` | yes (encrypted) |
+| Plaintext secrets, while editing | `secrets/secrets.yaml` | never |
+| age private key | `age/key.txt` (back it up: `git clean -fdx` deletes it) | never |
 | Installer state | `~/.local/state/agent-mcp/state.json` | no |
 | Installer backups | `~/.local/state/agent-mcp/backups/` | no |
 | Telegram session | Docker volume `agent-mcp_telegram-session` | never |
@@ -239,14 +245,19 @@ Messages from `task doctor` and `task install`:
 | `NOT CHECKED: Compose config; Docker CLI is missing.` | install Docker |
 | `NOT CHECKED: Compose config; Docker Compose plugin is missing.` | install the Compose v2 plugin |
 | `INVALID: Compose config; ...` | run `task docker:config` and fix `compose.example.yaml` |
-| `MISSING: age key; ...` | copy `keys.txt` ([Another machine](#another-machine-one-time-setup)) or, on the very first machine only, `task secrets:keygen` |
-| `INVALID: secrets.sops.yaml does not decrypt with the local age key` | wrong `keys.txt`, or Docker not running |
+| `MISSING: age key; ...` | copy `age/key.txt` ([Another machine](#another-machine-one-time-setup)) or, on the very first machine only, `task sops:generate-age-key` |
+| `INVALID: age/key.txt is not mode 600; ...` | `chmod 600 age/key.txt` |
+| `ERROR: ... is not SOPS-encrypted ...` | restore `secrets/secrets.sops.yaml` from git, or run `task sops:encrypt` |
+| `ERROR: plaintext secrets/secrets.yaml present ...` | `task sops:encrypt` (it removes the plaintext), or delete the file if you do not need it |
+| `INVALID: secrets/secrets.sops.yaml does not decrypt with age/key.txt` | wrong `age/key.txt`, or Docker not running |
+| `refusing to overwrite existing key: age/key.txt` | a key exists; `task sops:generate-age-key` never replaces it |
+| `sops:get: stdout is not a terminal; ...` | run `task sops:get` in your own terminal, or add `--copy` |
 | `NOT CHECKED: <harness>; '<cmd>' is not on PATH` | install the harness, or ignore it |
 | `NOT REGISTERED: <harness> lacks <server>; run task install` | run `task install` |
 | `WARNING: telegram container is not running; ...` | `task telegram:login` once, then `task telegram:up` |
 | `WARNING: http://127.0.0.1:8765/mcp does not answer` | `task telegram:logs`; check that port 8765 is free |
 | `MISSING: <dependency>` during install | follow the hint printed below it |
-| `secrets.sops.yaml still holds placeholders; ...` | `task secrets:edit` ([Telegram step 1](#telegram-once-per-machine)) |
+| `secrets/secrets.sops.yaml still holds placeholders; ...` | `task sops:decrypt`, edit, `task sops:encrypt` ([Telegram step 1](#telegram-once-per-machine)) |
 | `AuthKeyDuplicatedError` in the Telegram logs | the session is in use elsewhere: log this machine out and log in again ([Undo](#undo)) |
 
 ## Keeping this guide current
