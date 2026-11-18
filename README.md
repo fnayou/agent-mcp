@@ -105,7 +105,7 @@ Warning: the port is published on `127.0.0.1` only, and the endpoint has no auth
 Set up, once per machine:
 
 1. `task sops:decrypt`, replace the `REPLACE_ME` placeholders in `secrets/secrets.yaml` with the real API id and hash from <https://my.telegram.org/apps>, then `task sops:encrypt`.
-2. `task telegram:login`. Answer the label prompt with Enter and `y` to the `.env` prompt, then scan the QR code in Telegram under Settings > Devices > Link Desktop Device. The session string is converted into a session file and deleted.
+2. `task telegram:login`, then scan the QR code in Telegram under Settings > Devices > Link Desktop Device (and type the two-step verification password if asked). The task answers the script's prompts itself. The session string is converted into a session file and deleted; it is also printed on screen, so clear the terminal scrollback afterwards.
 3. `task telegram:up`. `task doctor` reports whether the container is running and `/mcp` answers.
 4. `task install` to register `telegram` in each harness.
 
