@@ -11,6 +11,11 @@ tasks:
     cmds:
       - python3 scripts/doctor.py
 
+  manifest:check:
+    desc: Validate servers.yaml against servers.schema.json
+    cmds:
+      - uv run --quiet --locked --script scripts/manifest_check.py
+
   setup:
     desc: Initialize missing local configuration without overwriting files
     cmds:
