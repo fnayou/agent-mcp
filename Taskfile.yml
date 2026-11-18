@@ -70,6 +70,28 @@ tasks:
           chmod 600 "{{.OUT}}"
         fi
 
+  telegram:login:
+    desc: One-time QR login for this machine, then migrate the session into the telegram-session volume
+    interactive: true
+    cmds:
+      - sh scripts/telegram-compose.sh run --rm telegram-login
+
+  telegram:up:
+    desc: Decrypt the Telegram credentials outside the repo and start the shared server
+    cmds:
+      - sh scripts/telegram-compose.sh up -d telegram
+
+  telegram:down:
+    desc: Stop and remove the Telegram container, keeping the session volume
+    cmds:
+      - docker compose -f compose.example.yaml stop telegram
+      - docker compose -f compose.example.yaml rm -f telegram
+
+  telegram:logs:
+    desc: Follow the Telegram server logs
+    cmds:
+      - docker compose -f compose.example.yaml logs -f telegram
+
   docker:config:
     desc: Validate Compose configuration without printing resolved values
     cmds:

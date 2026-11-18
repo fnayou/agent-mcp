@@ -7,6 +7,10 @@ requires:
     check:
       path: ${HOME}/.agents/skills/agent-browser/scripts/agent-browser-mcp
     hint: Install the agent-browser skill from https://github.com/fnayou/agent-skills
+  docker:
+    check:
+      command: docker
+    hint: Install Docker with the Compose plugin, then run task telegram:login and task telegram:up
 
 servers:
   playwright:
@@ -29,6 +33,15 @@ servers:
     args: [auth]
     startup_timeout_sec: 30
     requires: [agent-browser]
+
+  # One shared server in Compose (task telegram:up), reachable on loopback only.
+  # No auth: any local process of this user can call it.
+  telegram:
+    description: Telegram account access through one shared HTTP server in Compose; read-only tools plus send and reply
+    transport: http
+    url: http://127.0.0.1:8765/mcp
+    service: telegram
+    requires: [docker]
 
   # Ships with macOS. Enable Develop > Allow Remote Automation in Safari once.
   safari-mcp:

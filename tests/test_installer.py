@@ -28,6 +28,7 @@ import installer  # noqa: E402
 MANIFEST = ROOT / "servers.yaml"
 LAUNCHER = ".agents/skills/agent-browser/scripts/agent-browser-mcp"
 STAMP = "20260102T030405Z"
+TELEGRAM_URL = "http://127.0.0.1:8765/mcp"
 
 
 def expected_claude(home):
@@ -35,6 +36,7 @@ def expected_claude(home):
     return {
         "playwright": {"type": "stdio", "command": launcher, "args": [], "env": {}},
         "playwright-auth": {"type": "stdio", "command": launcher, "args": ["auth"], "env": {}},
+        "telegram": {"type": "http", "url": TELEGRAM_URL},
         "safari-mcp": {"type": "stdio", "command": "/usr/bin/safaridriver", "args": ["--mcp"], "env": {}},
     }
 
@@ -54,6 +56,7 @@ def expected_codex(home):
             },
         },
         "playwright-auth": {"command": launcher, "args": ["auth"], "startup_timeout_sec": 30},
+        "telegram": {"url": TELEGRAM_URL},
         "safari-mcp": {"command": "/usr/bin/safaridriver", "args": ["--mcp"]},
     }
 
@@ -63,6 +66,7 @@ def expected_opencode(home):
     return {
         "playwright": {"type": "local", "command": [launcher], "timeout": {"startup": 30000}},
         "playwright-auth": {"type": "local", "command": [launcher, "auth"], "timeout": {"startup": 30000}},
+        "telegram": {"type": "remote", "url": TELEGRAM_URL},
         "safari-mcp": {"type": "local", "command": ["/usr/bin/safaridriver", "--mcp"]},
     }
 
@@ -74,6 +78,7 @@ def expected_pi(home):
     return [
         ["pi", "mcp", "add", "playwright", "--description", description["playwright"], "--", launcher],
         ["pi", "mcp", "add", "playwright-auth", "--description", description["playwright-auth"], "--", launcher, "auth"],
+        ["pi", "mcp", "add", "telegram", "--description", description["telegram"], "--url", TELEGRAM_URL],
         ["pi", "mcp", "add", "safari-mcp", "--description", description["safari-mcp"], "--", "/usr/bin/safaridriver", "--mcp"],
     ]
 
@@ -132,7 +137,7 @@ class InstallerCase(unittest.TestCase):
         launcher.parent.mkdir(parents=True)
         launcher.touch()
         self.cli = FakeCli(self.home)
-        self.binaries = set(installer.HARNESSES)
+        self.binaries = set(installer.HARNESSES) | {"docker"}
         self.machine = frozenset({"darwin"})
 
     def env(self):
@@ -201,7 +206,7 @@ class EquivalenceTest(InstallerCase):
 
     def test_claude_is_registered_in_user_scope(self):
         add = [call for call in self.cli.calls if call[:3] == ["claude", "mcp", "add-json"]]
-        self.assertEqual(len(add), 3)
+        self.assertEqual(len(add), 4)
         self.assertTrue(all(call[3:5] == ["--scope", "user"] for call in add))
 
     def test_codex_entries_match_the_live_config(self):
@@ -217,7 +222,7 @@ class EquivalenceTest(InstallerCase):
     def test_state_records_every_installed_name_with_a_hash(self):
         state = self.state()
         for harness in installer.HARNESSES:
-            self.assertEqual(set(state[harness]), {"playwright", "playwright-auth", "safari-mcp"})
+            self.assertEqual(set(state[harness]), {"playwright", "playwright-auth", "telegram", "safari-mcp"})
             self.assertTrue(all(len(value) == 64 for value in state[harness].values()))
 
 
@@ -386,8 +391,8 @@ class FilterTest(InstallerCase):
         code, output = self.invoke("install")
         self.assertEqual(code, 0, output)
         self.assertRegex(output, r"skip\s+safari-mcp: os is darwin")
-        self.assertEqual(set(self.claude()), {"playwright", "playwright-auth"})
-        self.assertEqual(set(self.codex()), {"playwright", "playwright-auth"})
+        self.assertEqual(set(self.claude()), {"playwright", "playwright-auth", "telegram"})
+        self.assertEqual(set(self.codex()), {"playwright", "playwright-auth", "telegram"})
 
     def test_harness_filter_skips_a_server_and_says_so(self):
         manifest = self.manifest({
@@ -439,8 +444,8 @@ class MissingTest(InstallerCase):
         self.assertEqual(code, 1)
         self.assertIn("MISSING: agent-browser", output)
         self.assertIn("Install the agent-browser skill", output)
-        self.assertEqual(set(self.claude()), {"safari-mcp"})
-        self.assertEqual(set(self.codex()), {"safari-mcp"})
+        self.assertEqual(set(self.claude()), {"telegram", "safari-mcp"})
+        self.assertEqual(set(self.codex()), {"telegram", "safari-mcp"})
 
     def test_missing_command_dependency_is_reported(self):
         manifest = self.manifest(
