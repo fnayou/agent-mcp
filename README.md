@@ -87,6 +87,27 @@ New machine: copy `keys.txt` once, out of band, to `~/.config/sops/age/keys.txt`
 
 Back up the key. Losing it makes `secrets.sops.yaml` undecryptable.
 
+## Telegram
+
+The `telegram` server is [chigwell/telegram-mcp](https://github.com/chigwell/telegram-mcp), pinned to tag `v3.3.25` and built from its upstream Dockerfile. One container serves `http://127.0.0.1:8765/mcp` to all four harnesses, so Telegram sees one connection instead of one per client. Only Docker is needed on the host. Never install the PyPI package `telegram-mcp`: it is an unrelated project.
+
+Exposed tools: read-only tools plus `send_message` and `reply_to_message` (`TELEGRAM_EXPOSED_TOOLS`). Set `TELEGRAM_EXPECTED_USERNAME` to refuse a session for the wrong account, and `TELEGRAM_TOOL_TIMEOUT_SECONDS` to change the tool timeout; both are passed to the container only when set in your shell.
+
+Warning: the port is published on `127.0.0.1` only, and the endpoint has no authentication. Any local process running as you can read and send messages with your account.
+
+Set up, once per machine:
+
+1. `task secrets:edit` and replace the `REPLACE_ME` placeholders with the real API id and hash from <https://my.telegram.org/apps>.
+2. `task telegram:login`. Answer the label prompt with Enter and `y` to the `.env` prompt, then scan the QR code in Telegram under Settings > Devices > Link Desktop Device. The session string is converted into a session file and deleted.
+3. `task telegram:up`. `task doctor` reports whether the container is running and `/mcp` answers.
+4. `task install` to register `telegram` in each harness.
+
+Sessions are per machine. Telegram invalidates an auth key used from two IPs at once (`AuthKeyDuplicatedError`), so never copy a session between machines: each one runs its own QR login. Use `task telegram:down` to stop the server and `task telegram:logs` to follow its logs.
+
+The session file holds account credentials. It lives in the `telegram-session` Docker volume, never in the repository, and is never committed. Voice transcripts are cached in the `telegram-transcripts` volume. To log in again, remove the volume with `docker volume rm agent-mcp_telegram-session` after `task telegram:down`.
+
+`task telegram:login` and `task telegram:up` decrypt the API id and hash into a mode-600 temporary file outside the repository, hand it to Compose, and delete it on exit. They refuse to run while the placeholders are still in `secrets.sops.yaml`.
+
 ## Project profile
 
 This repository is initialized as a CLI foundation. Add verified project-specific build and test instructions as the implementation takes shape.

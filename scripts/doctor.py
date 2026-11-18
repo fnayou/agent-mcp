@@ -1,4 +1,4 @@
-import os, shutil, subprocess, sys
+import os, shutil, subprocess, sys, urllib.error, urllib.request
 missing = [name for name in ('git', 'python3', 'uv') if not shutil.which(name)]
 for name in missing:
     print(f'MISSING: {name}')
@@ -33,4 +33,19 @@ if decrypt.returncode:
     sys.exit(1)
 print('OK: secrets.sops.yaml decrypts', flush=True)
 harnesses = subprocess.run(['uv', 'run', '--quiet', '--locked', '--script', 'scripts/installer.py', 'status'])
+# Not running is a warning, not a failure: the operator may not have logged in yet.
+running = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'ps', '--status', 'running', '--quiet', 'telegram'], capture_output=True, text=True)
+if running.returncode or not running.stdout.strip():
+    print('WARNING: telegram container is not running; run task telegram:login once, then task telegram:up.')
+else:
+    print('OK: telegram container is running')
+telegram_url = 'http://127.0.0.1:8765/mcp'
+try:
+    urllib.request.urlopen(telegram_url, timeout=5).close()
+    answered = True
+except urllib.error.HTTPError:
+    answered = True  # any HTTP response counts
+except (urllib.error.URLError, OSError):
+    answered = False
+print(f'OK: {telegram_url} answers' if answered else f'WARNING: {telegram_url} does not answer')
 sys.exit(harnesses.returncode)

@@ -11,7 +11,75 @@ x-tools-image: &tools-image
       FROM ghcr.io/getsops/sops:v3.13.3-alpine@sha256:ae501277bf742f1662e0f881f43dd8fd6798b489a8058e921dbf6cda597140ea
       RUN apk add --no-cache age=1.3.2-r1
 
+# Credentials reach the Telegram containers through a temporary env file that
+# scripts/telegram-compose.sh decrypts outside the repository. Without it the
+# path is empty, so `docker compose config` still validates.
+x-telegram-env: &telegram-env
+  env_file:
+    - ${TELEGRAM_ENV_FILE:-/dev/null}
+
 services:
+  # Shared Telegram MCP server (chigwell/telegram-mcp) over streamable HTTP.
+  # Published on loopback only; the endpoint has no authentication.
+  # Start it with `task telegram:up` after `task telegram:login`.
+  telegram:
+    <<: *telegram-env
+    image: agent-mcp-telegram:v3.3.25
+    build:
+      # Tag v3.3.25 is commit 0d27284a5e99d788ffe4f857d9df8d9d668e2820.
+      # Never install the PyPI package `telegram-mcp`: it is an unrelated project.
+      context: https://github.com/chigwell/telegram-mcp.git#v3.3.25
+      target: production
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      MCP_TRANSPORT: http
+      MCP_HOST: 0.0.0.0
+      TELEGRAM_EXPOSED_TOOLS: read-only+send_message,reply_to_message
+      TELEGRAM_SESSION_NAME: /app/data/telegram_mcp_session
+      # Passed through only when set in the host environment.
+      TELEGRAM_EXPECTED_USERNAME:
+      TELEGRAM_TOOL_TIMEOUT_SECONDS:
+    volumes:
+      # The session file holds account credentials; it never leaves this volume.
+      - telegram-session:/app/data
+      # Plaintext transcript cache of voice messages.
+      - telegram-transcripts:/app/data/transcripts
+
+  # One-time QR login. The production image lacks the login scripts, so this
+  # image adds them on top of it. Run it with `task telegram:login`.
+  telegram-login:
+    <<: *telegram-env
+    profiles: [tools]
+    image: agent-mcp-telegram-login:v3.3.25
+    build:
+      context: https://github.com/chigwell/telegram-mcp.git#v3.3.25
+      additional_contexts:
+        telegram: service:telegram
+      dockerfile_inline: |
+        FROM telegram
+        COPY session_string_generator.py migrate_session.py ./
+    environment:
+      TELEGRAM_SESSION_NAME: /app/data/telegram_mcp_session
+    volumes:
+      - telegram-session:/app/data
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        # The image sets an empty TELEGRAM_SESSION_STRING that .env cannot override.
+        unset TELEGRAM_SESSION_STRING
+        umask 077
+        # The generator writes the session string here; it is deleted on exit.
+        trap 'rm -f /app/.env' EXIT
+        : > /app/.env
+        echo "Answer the label prompt with Enter, and y to update .env."
+        python session_string_generator.py --qr
+        python migrate_session.py
+        echo "Session stored in the telegram-session volume."
+
   # sops with built-in age support, for editing and decrypting secrets.sops.yaml.
   # The age private key stays on the host and is mounted read-only.
   sops:
@@ -41,3 +109,7 @@ services:
         age-keygen -o /keys/keys.txt
     volumes:
       - ${SOPS_AGE_KEY_DIR:-${HOME}/.config/sops/age}:/keys
+
+volumes:
+  telegram-session:
+  telegram-transcripts:
