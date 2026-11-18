@@ -31,4 +31,6 @@ decrypt = subprocess.run([docker, 'compose', '-f', 'compose.example.yaml', 'run'
 if decrypt.returncode:
     print('INVALID: secrets.sops.yaml does not decrypt with the local age key')
     sys.exit(1)
-print('OK: secrets.sops.yaml decrypts')
+print('OK: secrets.sops.yaml decrypts', flush=True)
+harnesses = subprocess.run(['uv', 'run', '--quiet', '--locked', '--script', 'scripts/installer.py', 'status'])
+sys.exit(harnesses.returncode)

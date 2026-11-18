@@ -50,10 +50,16 @@ def check(manifest_path, schema_path):
     return errors
 
 
-manifest_path = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "servers.yaml"
-errors = check(manifest_path, ROOT / "servers.schema.json")
-for error in errors:
-    print(f"INVALID: {error}")
-if errors:
-    sys.exit(1)
-print(f"OK: {manifest_path.name} matches servers.schema.json")
+def main(argv):
+    manifest_path = Path(argv[1]) if len(argv) > 1 else ROOT / "servers.yaml"
+    errors = check(manifest_path, ROOT / "servers.schema.json")
+    for error in errors:
+        print(f"INVALID: {error}")
+    if errors:
+        return 1
+    print(f"OK: {manifest_path.name} matches servers.schema.json")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
