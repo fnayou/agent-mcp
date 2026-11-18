@@ -75,8 +75,15 @@ services:
         # The generator writes the session string here; it is deleted on exit.
         trap 'rm -f /app/.env' EXIT
         : > /app/.env
-        echo "Answer the label prompt with Enter, and y to update .env."
-        python session_string_generator.py --qr
+        # Answer the generator's two prompts: an empty account label (any label
+        # would name the variable TELEGRAM_SESSION_STRING_<LABEL>, which the
+        # migration does not read) and y to write .env. The QR scan needs no
+        # input, and a 2FA password is still asked on the terminal (getpass).
+        printf '\ny\n' | python session_string_generator.py --qr
+        grep -q '^TELEGRAM_SESSION_STRING=.' /app/.env || {
+          echo "No session string was written; run task telegram:login again." >&2
+          exit 1
+        }
         python migrate_session.py
         echo "Session stored in the telegram-session volume."
 

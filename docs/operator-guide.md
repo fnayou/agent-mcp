@@ -152,12 +152,11 @@ Security: the server listens on `127.0.0.1:8765` only, and has no authentication
    ```sh
    task telegram:login
    ```
-   The first run builds two images, which takes a few minutes. Then:
-   - press Enter at the label prompt;
-   - answer `y` when asked to update `.env`;
-   - on your phone, open Telegram > Settings > Devices > Link Desktop Device, and scan the QR code.
+   The first run builds two images, which takes a few minutes. The task answers the script's two questions itself (default account, write `.env`). Then:
+   - on your phone, open Telegram > Settings > Devices > Link Desktop Device, and scan the QR code;
+   - if your account has two-step verification, type its password when asked.
 
-   The session is stored in the `agent-mcp_telegram-session` volume, and the temporary session string is deleted.
+   The session is stored in the `agent-mcp_telegram-session` volume, and the temporary session string is deleted. The upstream script also prints the session string on screen: it is a full login to your account, so clear the terminal scrollback afterwards (Cmd-K in most macOS terminals) and never paste or screenshot it.
 3. **Start the server:**
    ```sh
    task telegram:up
@@ -274,6 +273,7 @@ Messages from `task doctor` and `task install`:
 | `WARNING: http://127.0.0.1:8765/mcp does not answer` | `task telegram:logs`; check that port 8765 is free |
 | `MISSING: <dependency>` during install | follow the hint printed below it |
 | `secrets/secrets.sops.yaml still holds placeholders; ...` | `task sops:decrypt`, edit, `task sops:encrypt` ([Telegram step 1](#telegram-once-per-machine)) |
+| `Error: TELEGRAM_SESSION_STRING must be set` or `No session string was written` during `task telegram:login` | the scan succeeded but no session was saved. On your phone, end the new session under Settings > Devices (it carries your app's title, for example `agent-mcp`), clear the terminal scrollback, then run `task telegram:login` again |
 | `AuthKeyDuplicatedError` in the Telegram logs | the session is in use elsewhere: log this machine out and log in again ([Undo](#undo)) |
 
 ## Keeping this guide current
