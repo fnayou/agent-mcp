@@ -85,7 +85,17 @@ The source of truth is `servers.yaml`. When it gains a server, add its row here.
 
 ### Things to have at hand
 
-- **Telegram API id and hash**: log in at <https://my.telegram.org/apps>, open "API development tools", and create an application. Note the `api_id` (a number) and `api_hash`. One pair serves every machine.
+- **Telegram API id and hash**: log in at <https://my.telegram.org/apps>, open "API development tools", and create an application. Note the `api_id` (a number) and `api_hash`. One pair serves every machine. The form fields:
+
+  | Field | Value |
+  |---|---|
+  | App title | any name, for example `agent-mcp` |
+  | Short name | 5 to 32 letters or digits, for example `agentmcp` |
+  | URL | leave empty |
+  | Platform | `Desktop` (`Other` works too) |
+  | Description | leave empty |
+
+  A bare "ERROR" on submit is a known quirk of the site: turn off VPN or ad blocking, or try another browser, and submit again.
 - **Your phone with Telegram**, for the QR login on each machine.
 - **A safe place for the age private key** (a password manager, for example). Losing the key makes `secrets.sops.yaml` unreadable; leaking it exposes every past version of the secrets, which stay in the public git history.
 
