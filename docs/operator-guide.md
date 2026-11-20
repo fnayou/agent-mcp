@@ -17,7 +17,8 @@ The guide is kept in step with the code. Any change to a task, a prerequisite, a
 9. [Undo](#undo)
 10. [Where things live](#where-things-live)
 11. [Troubleshooting](#troubleshooting)
-12. [Keeping this guide current](#keeping-this-guide-current)
+12. [What CI checks](#what-ci-checks)
+13. [Keeping this guide current](#keeping-this-guide-current)
 
 ## What agent-mcp changes on a machine
 
@@ -275,6 +276,20 @@ Messages from `task doctor` and `task install`:
 | `secrets/secrets.sops.yaml still holds placeholders; ...` | `task sops:decrypt`, edit, `task sops:encrypt` ([Telegram step 1](#telegram-once-per-machine)) |
 | `Error: TELEGRAM_SESSION_STRING must be set` or `No session string was written` during `task telegram:login` | the scan succeeded but no session was saved. On your phone, end the new session under Settings > Devices (it carries your app's title, for example `agent-mcp`), clear the terminal scrollback, then run `task telegram:login` again |
 | `AuthKeyDuplicatedError` in the Telegram logs | the session is in use elsewhere: log this machine out and log in again ([Undo](#undo)) |
+
+## What CI checks
+
+GitHub Actions runs `.github/workflows/ci.yml` on every push and pull request. It needs no age key and no repository secret, and nothing is decrypted. It runs:
+
+| Check | Same as running locally |
+|---|---|
+| Manifest | `task manifest:check` |
+| Installer tests | `task test` |
+| Secrets store is encrypted, no plaintext file | `task sops:validate` |
+| Compose file is valid | `task docker:config` |
+| No leaked secret anywhere in the git history | gitleaks, over the full history |
+
+A red check on a pull request must be fixed before merge. Run the failing task locally to see the same error. If gitleaks reports a real secret, treat it as leaked: rotate it first, then ask before rewriting history.
 
 ## Keeping this guide current
 
