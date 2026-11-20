@@ -4,6 +4,8 @@
 
 Declare every MCP server once and install it into Claude Code, Codex, OpenCode and Pi on macOS, Arch and Debian.
 
+Documentation: <https://fnayou.github.io/agent-mcp/>
+
 ## Getting started
 
 Follow the [operator guide](docs/operator-guide.md): prerequisites, one-time setup per machine, install, day-to-day commands and undo.
@@ -130,6 +132,16 @@ The session file holds account credentials. It lives in the `telegram-session` D
 ## Brand
 
 The logo, README banner, favicon and social preview live in `brand/`: `brand/data/` holds the palette and the verified facts, `brand/src/` the SVG templates, and `brand/generated/` the committed output, which is never edited by hand. `task brand:generate` renders the output (the PNG needs `rsvg-convert`) and `task brand:check` fails when it is stale; the `brand` workflow runs the check. GitHub has no API for the social preview: upload `brand/generated/social-preview.png` by hand under Settings > General > Social preview.
+
+## Documentation site
+
+The site at <https://fnayou.github.io/agent-mcp/> is built with [Zensical](https://zensical.org/) from `website/` and `zensical.toml`, and deployed to GitHub Pages by the `docs-pages` workflow. It includes `docs/operator-guide.md` as it is, so editing the guide updates the site. The brand assets are copied from `brand/generated/` at build time.
+
+| Command | Effect |
+|---|---|
+| `task docs:build` | Build the site into `site/` with `zensical build --strict`. |
+| `task docs:check` | Build, then check links, anchors, alt text, contrast and `og:image` with `scripts/check_docs.py`. |
+| `task docs:serve` | Serve the site locally with live reload. |
 
 ## Project profile
 

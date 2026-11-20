@@ -19,3 +19,6 @@ keys.txt
 secrets.yaml
 secrets/.*.tmp
 __pycache__/
+# documentation site: build output, and brand assets copied by task docs:assets
+site/
+website/assets/
