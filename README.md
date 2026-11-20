@@ -115,6 +115,16 @@ The session file holds account credentials. It lives in the `telegram-session` D
 
 `task telegram:login` and `task telegram:up` decrypt only the API id and hash into a mode-600 temporary file outside the repository, hand it to Compose, and delete it on exit. They refuse to run while the placeholders are still in `secrets/secrets.sops.yaml`.
 
+## CI
+
+`.github/workflows/ci.yml` runs on every push and pull request, needs no age key or repository secret, and decrypts nothing. It runs the same tasks you run locally:
+
+- `task manifest:check`: `servers.yaml` matches its schema.
+- `task test`: the installer test suite.
+- `task sops:validate`: every `secrets/*.sops.yaml` is encrypted and no plaintext `secrets/secrets.yaml` is present.
+- `task docker:config`: the Compose file is valid.
+- gitleaks over the full git history.
+
 ## Project profile
 
 This repository is initialized as a CLI foundation. Add verified project-specific build and test instructions as the implementation takes shape.
