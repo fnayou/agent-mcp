@@ -49,6 +49,30 @@ tasks:
     cmds:
       - python3 scripts/brand_generate.py --check
 
+  docs:assets:
+    desc: Copy the generated brand assets into website/assets (ignored by git)
+    cmds:
+      - mkdir -p website/assets
+      - cp brand/generated/favicon.svg brand/generated/readme-banner.svg brand/generated/social-preview.png website/assets/
+
+  docs:build:
+    desc: Build the documentation site into site/ with zensical build --strict
+    deps: [docs:assets]
+    cmds:
+      - uv run --quiet --with-requirements requirements-docs.txt zensical build --strict
+
+  docs:check:
+    desc: Build the documentation site, then check links, anchors, alt text, contrast and og:image
+    cmds:
+      - task: docs:build
+      - python3 scripts/check_docs.py site --base-path /agent-mcp/ --palette brand/data/brand.json --require-og-image
+
+  docs:serve:
+    desc: Serve the documentation site locally with live reload
+    deps: [docs:assets]
+    cmds:
+      - uv run --quiet --with-requirements requirements-docs.txt zensical serve
+
   setup:
     desc: Initialize missing local configuration without overwriting files
     cmds:

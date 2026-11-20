@@ -8,7 +8,7 @@ Use `task --list` to see available commands. Run `task setup` once, then `task d
 
 ## Working rules
 
-`docs/operator-guide.md` is the human guide. A change to an operator task, a prerequisite, a server in `servers.yaml`, a path, volume or port outside the repository, or a message from `task doctor` or the installer updates that guide in the same pull request.
+`docs/operator-guide.md` is the human guide, and the documentation site renders it as it is, so no separate site update is needed (`task docs:check` builds and checks the site). A change to an operator task, a prerequisite, a server in `servers.yaml`, a path, volume or port outside the repository, or a message from `task doctor` or the installer updates that guide in the same pull request.
 
 Agents never read, print or copy `age/key.txt` or `secrets/secrets.yaml`; the operator runs `task sops:*` commands that touch them.
 

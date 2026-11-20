@@ -302,3 +302,5 @@ This guide is part of the code. A pull request that changes any of the following
 - a message printed by `task doctor` or the installer.
 
 When you run the guide on a new OS or version, update "Versions tested" under [Prerequisites](#prerequisites).
+
+The documentation site at <https://fnayou.github.io/agent-mcp/> renders this file as it is (`website/operator-guide.md` includes it), so editing this guide is the only step: there is no copy to update. Keep links inside the guide to `#anchors` and absolute URLs so they work on GitHub and on the site, and run `task docs:check` after changing a heading.
