@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img">
+  <title>{{NAME}} icon</title>
+  <rect width="96" height="96" rx="20" fill="{{BASE}}"/>
+  <g transform="translate(16 8)">
+    <rect x="12" y="0" width="12" height="26" rx="6" fill="{{ACCENT}}"/>
+    <rect x="40" y="0" width="12" height="26" rx="6" fill="{{ACCENT}}"/>
+    <rect x="0" y="20" width="64" height="34" rx="14" fill="{{TEXT}}"/>
+    <rect x="14" y="32" width="36" height="10" rx="5" fill="{{BASE}}"/>
+    <rect x="26" y="50" width="12" height="30" rx="6" fill="{{TEXT}}"/>
+  </g>
+</svg>

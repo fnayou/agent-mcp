@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 96" role="img">
+  <title>agent-mcp logo</title>
+  <!-- A plug: two prongs, a body with one inner bar, a short cable. MCP as a standard connector. -->
+  <g transform="translate(12 8)">
+    <rect x="12" y="0" width="12" height="26" rx="6" fill="#b7bdf8"/>
+    <rect x="40" y="0" width="12" height="26" rx="6" fill="#b7bdf8"/>
+    <rect x="0" y="20" width="64" height="34" rx="14" fill="#cad3f5"/>
+    <rect x="14" y="32" width="36" height="10" rx="5" fill="#24273a"/>
+    <rect x="26" y="50" width="12" height="30" rx="6" fill="#cad3f5"/>
+  </g>
+  <text x="104" y="62" font-family="sans-serif" font-size="44" font-weight="700" fill="#cad3f5">agent-mcp</text>
+</svg>

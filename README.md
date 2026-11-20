@@ -1,5 +1,7 @@
 # fnayou/agent-mcp
 
+![agent-mcp: a lavender and white plug beside the project name, its tagline and four pillars: one manifest, dry-run preview, sops and age secrets, verified in CI](brand/generated/readme-banner.svg)
+
 Declare every MCP server once and install it into Claude Code, Codex, OpenCode and Pi on macOS, Arch and Debian.
 
 ## Getting started
@@ -124,6 +126,10 @@ The session file holds account credentials. It lives in the `telegram-session` D
 - `task sops:validate`: every `secrets/*.sops.yaml` is encrypted and no plaintext `secrets/secrets.yaml` is present.
 - `task docker:config`: the Compose file is valid.
 - gitleaks over the full git history.
+
+## Brand
+
+The logo, README banner, favicon and social preview live in `brand/`: `brand/data/` holds the palette and the verified facts, `brand/src/` the SVG templates, and `brand/generated/` the committed output, which is never edited by hand. `task brand:generate` renders the output (the PNG needs `rsvg-convert`) and `task brand:check` fails when it is stale; the `brand` workflow runs the check. GitHub has no API for the social preview: upload `brand/generated/social-preview.png` by hand under Settings > General > Social preview.
 
 ## Project profile
 
