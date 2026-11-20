@@ -39,6 +39,16 @@ tasks:
     cmds:
       - uv run --quiet --locked --script tests/test_installer.py
 
+  brand:generate:
+    desc: Render brand/src and brand/data into brand/generated (needs rsvg-convert for the PNG)
+    cmds:
+      - python3 scripts/brand_generate.py --generate
+
+  brand:check:
+    desc: Fail when brand/generated is stale, missing or hand-edited
+    cmds:
+      - python3 scripts/brand_generate.py --check
+
   setup:
     desc: Initialize missing local configuration without overwriting files
     cmds:
